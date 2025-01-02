@@ -1,0 +1,104 @@
+import telebot
+from telebot import types
+
+# Bot tokenini kiriting
+TOKEN = '8072869271:AAHobvPWd54j8LdIBumvrPEPTpBKvxu82vY'
+bot = telebot.TeleBot(TOKEN)
+
+# Foydalanuvchi ma'lumotlarini saqlash uchun dictionary
+user_data = {}
+
+# Start buyrug'i uchun handler
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    chat_id = message.chat.id
+    user_data[chat_id] = {}
+    
+    msg = "Assalomu alaykum! Rassrochka kalkulyatori botiga xush kelibsiz!\n\n"
+    msg += "Mahsulot narxini bilish uchun quyidagi ma'lumotlarni kiriting:\n"
+    msg += "1. Mahsulotning asl narxi (so'mda)\n"
+    
+    # Asl narxni so'rash
+    bot.send_message(chat_id, msg)
+    bot.register_next_step_handler(message, get_original_price)
+
+def get_original_price(message):
+    try:
+        chat_id = message.chat.id
+        price = float(message.text)
+        if price <= 0:
+            raise ValueError
+        
+        user_data[chat_id]['original_price'] = price
+        
+        # Oylik to'lov miqdorini so'rash
+        msg = "Oylik to'lov miqdorini kiriting (so'mda):"
+        bot.send_message(chat_id, msg)
+        bot.register_next_step_handler(message, get_monthly_payment)
+        
+    except ValueError:
+        msg = "Iltimos, to'g'ri narx kiriting (faqat raqamlar)!"
+        bot.send_message(chat_id, msg)
+        bot.register_next_step_handler(message, get_original_price)
+
+def get_monthly_payment(message):
+    try:
+        chat_id = message.chat.id
+        monthly = float(message.text)
+        if monthly <= 0:
+            raise ValueError
+            
+        user_data[chat_id]['monthly_payment'] = monthly
+        
+        # Oy sonini so'rash
+        msg = "Rassrochka muddatini kiriting (oylar soni):"
+        bot.send_message(chat_id, msg)
+        bot.register_next_step_handler(message, calculate_difference)
+        
+    except ValueError:
+        msg = "Iltimos, to'g'ri summa kiriting (faqat raqamlar)!"
+        bot.send_message(chat_id, msg)
+        bot.register_next_step_handler(message, get_monthly_payment)
+
+def calculate_difference(message):
+    try:
+        chat_id = message.chat.id
+        months = int(message.text)
+        if months <= 0:
+            raise ValueError
+            
+        original_price = user_data[chat_id]['original_price']
+        monthly_payment = user_data[chat_id]['monthly_payment']
+        
+        # Umumiy to'lov summasini hisoblash
+        total_payment = monthly_payment * months
+        
+        # Farqni hisoblash
+        difference = total_payment - original_price
+        
+        # Natijani chiqarish
+        msg = "📊 Hisob-kitob natijalari:\n\n"
+        msg += f"💰 Mahsulotning asl narxi: {format_price(original_price)} so'm\n"
+        msg += f"📅 Rassrochka muddati: {months} oy\n"
+        msg += f"💸 Oylik to'lov: {format_price(monthly_payment)} so'm\n"
+        msg += f"💵 Umumiy to'lov summasi: {format_price(total_payment)} so'm\n"
+        msg += f"❗️ Ortiqcha to'lov: {format_price(difference)} so'm\n"
+        msg += f"📈 Ustama foizi: {((total_payment/original_price - 1) * 100):.1f}%"
+        
+        bot.send_message(chat_id, msg)
+        
+        # Yangi hisob-kitob uchun taklif
+        msg = "Yangi hisob-kitob qilish uchun /start buyrug'ini yuboring"
+        bot.send_message(chat_id, msg)
+        
+    except ValueError:
+        msg = "Iltimos, to'g'ri oy sonini kiriting (faqat butun son)!"
+        bot.send_message(chat_id, msg)
+        bot.register_next_step_handler(message, calculate_difference)
+
+def format_price(price):
+    """Narxni chiroyli formatda qaytaradi (ming xonalari vergul bilan ajratilgan)"""
+    return "{:,.0f}".format(price).replace(",", " ")
+
+# Botni ishga tushirish
+bot.polling(none_stop=True)
