@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 
 # Bot tokenini kiriting
-TOKEN = '8072869271:AAHobvPWd54j8LdIBumvrPEPTpBKvxu82vY'
+TOKEN = '8072869271:AAFx55bT_9qbhb6EnH01bJzuWgnR_S9jxxY'
 bot = telebot.TeleBot(TOKEN)
 
 # Foydalanuvchi ma'lumotlarini saqlash uchun dictionary
